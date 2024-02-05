@@ -1,76 +1,50 @@
+import logging
 import time
-from message_operations import delete_message, receive_messages
+from message_operations import receive_sqs_message, sqs_delete_message
 
 
-class ProcessingInstance:
+class ProcessSQSQueue:
     def __init__(self):
-        self.state = False
-
-    # def is_idle(self):
-    #     return self.state == "paused"
+        self.running_state = False
 
     def process_message(self, message):
-        # self.state = True
+        """
+        When the message is here to get processed, we need to check if any error occurs while in the processing steps.
+        if there is any error, we have to update the MongoDB of the same file with the status of the error.
+        :param message:(dict) This is the individual message that is passed to processing instance
+        :return:None , This function does not return a value but display the information of processing message with
+        """
         print(f"Processing message: {message['content']}")
         time.sleep(4)  # processing time
-        self.state = False
 
-    def check_and_process_next_message(self, sqs_client, queue_url):
+    def fetch_sqs_message(self, sqs_client, queue_url):
         """
-        yesma chirnu vaneko: kita sqs queue naveye samma kaam garnu pareo | ki ta sqs queue khali xa vaye ko logic
-        implement garnu pareo.
-        :param sqs_client:
-        :param queue_url:
-        :return:
+        Continuously fetches and processes messages from an AWS SQS queue until the queue is empty.
+        This function polls the SQS queue for message ,delete the message after  receiving each  message
+        from the SQS QUEUE and then processes each message.Loop continue until no message are available in the QUEUE
+
+        :param sqs_client:(obj)Initialized client object for accessing the AWS SQS queue.
+        :param queue_url:(str)The URL of the AWS SQS queue from which to fetch messages.
+
+        :return:None ,This function does not return a value but logs information regarding the  processing state and
+        the errors
         """
-        if not self.state:
 
-            while True:
+        while True:
+            receipt_handle, message_id, message_body = receive_sqs_message(sqs_client=sqs_client, queue_url=queue_url, max_num=1)
+            if message_body is not None:
+                response = sqs_delete_message(sqs_client, queue_url, receipt_handle)  # we need to check if the message will
+                # immediately get deleted or not.
+                self.running_state = True
+                self.process_message(message_body)
+                self.running_state = False
 
-                receipt_handle, message_body = receive_messages(sqs_client=sqs_client, queue_url=queue_url, max_num=1)
-                if message_body is not None:
-                    if not self.state:
-                        self.state = True
-                        self.process_message(message_body)
-                        delete_message(sqs_client, queue_url, receipt_handle)
-
-                    # while sqs_queue:
-                    if self.state == "paused":
-                        messages = receive_messages(sqs_client=sqs_client, queue_url=queue_url, max_num=1)
-                        if messages:
-                            message = messages[0]
-                            receipt_handle = message['ReceiptHandle']
-                            self.state = "processing"
-                            self.process_message(message)
-                            delete_message(sqs_client, queue_url, receipt_handle)
-                            self.state = "paused"
-                        else:
-                            # No messages to process, continue to pause
-                            self.state = "paused"
-                            time.sleep(1)
-                    else:
-                        time.sleep(1)
-
+            else:
+                if receipt_handle is None:
+                    logging.info(f"INFO [Error while fetching the message from AWS SQS Queue.]")
                 else:
+                    logging.info(f"INFO [{receipt_handle}]")
                     # need to work if the sqs queue is empty.
-                    break
+                break
+                # return False
 
-
-
-'''
-import time
-
-class processing_instance():
-    def __init__(self):
-        self.is_busy=False
-
-    def process(self ,message ):
-        message=receive_message()
-        print(f"Processing message:" )
-        self.is_busy =True
-        time.sleep(10)
-        self.is_busy = False
-
-
-a=processing_instance()
-'''
