@@ -8,11 +8,17 @@ logger = logging.getLogger()
 
 def get_sqs_client(region_name, aws_sqs_key_id, aws_sqs_secret_access_key):
     """
+    Creates and returns an AWS SQS client object using the specified credentials and region. This client
+    is used for interacting with AWS SQS, including operations like sending and receiving messages from a
+    specified AWS SQS QUEUE.
 
-    :param region_name:
-    :param aws_sqs_key_id:
-    :param aws_sqs_secret_access_key:
-    :return:
+    :param region_name:(str) The name of the AWS region where the SQS service is located
+    :param aws_sqs_key_id:(str) The AWS access key ID, part of the credentials to authenticate with AWS
+    :param aws_sqs_secret_access_key:(str) The AWS secret access key, part of the credentials to authenticate
+                                    with AWS.
+    :return: A boto3 SQS client object configured with the provided credentials and region,
+            ready for interacting with AWS SQS and Returns None if the client creation fails due to
+            missing credentials or other
     """
 
     if not (aws_sqs_key_id and aws_sqs_secret_access_key):
