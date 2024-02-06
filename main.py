@@ -4,6 +4,7 @@ from sqs_queue.client import get_sqs_client
 from sqs_queue.message_operations import send_messages_batch
 from sqs_queue.python_instance import ProcessSQSQueue
 from api_operation.api_fetching_msg import fetch_api
+from sqs_queue.count_message_in_queue import count_messages_in_queue
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -11,7 +12,6 @@ logger = logging.getLogger(__name__)
 
 
 def main():
-
     aws_sqs_key_id = 'access-key'  #
     aws_sqs_secret_access_key = '-secret-key'  #
     region_name = 'your-region'
@@ -37,7 +37,9 @@ def main():
                     'filepath': 's3://my-bucket/image2.jpg',
                     'filename': 'image2.jpg'
                 },
-                {
+                {            f = sqs_queue_instance.fetch_sqs_message(sqs_client, sqs_queue_url)            f = sqs_queue_instance.fetch_sqs_message(sqs_client, sqs_queue_url)
+
+
                     'guid': '1a2b3c4d5e6f7g8h',  
                     'filepath': 's3://my-bucket/report3.txt',
                     'filename': 'report3.txt'
@@ -45,10 +47,13 @@ def main():
             ]"
 
         '''
-        if len(messages_string):
-            messages: list[dict] = json.loads(messages_string)
 
-            if not sqs_queue_instance.running_state:
+        if len(messages_string):
+            messages = json.loads(messages_string)
+
+            message_count = count_messages_in_queue(sqs_client, sqs_queue_url)
+
+            if not sqs_queue_instance.running_state and message_count == 0:
                 first_message = messages.pop(0)  # first file's metadata
                 send_to_sqs(sqs_client=sqs_client, sqs_queue_url=sqs_queue_url, messages=messages)
                 sqs_queue_instance.running_state = True
@@ -88,5 +93,3 @@ def send_to_sqs(sqs_client, sqs_queue_url, messages):
 
 if __name__ == "__main__":
     main()
-
-
